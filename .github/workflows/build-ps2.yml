@@ -1,13 +1,53 @@
-- name: Debug PATH e ferramentas
-        run: |
-          echo "PATH atual: $PATH"
-          which ee-gcc || echo "ee-gcc não encontrado!"
-          which dvp-as || echo "dvp-as não encontrado!"
-          ls \~/ps2dev/bin || echo "bin não encontrado!"
-          ls \~/ps2dev/ps2sdk || echo "ps2sdk não encontrado!"
+name: PS2 Homebrew - Build java.elf
 
-      - name: Debug PS2SDK vars
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup PS2DEV via Docker (pré-compilado oficial)
         run: |
-          echo "PS2DEV=$PS2DEV"
+          docker pull ps2dev/ps2dev:latest
+          mkdir -p \~/ps2dev
+          docker create --name temp-ps2dev ps2dev/ps2dev:latest
+          docker cp temp-ps2dev:/usr/local/ps2dev/. \~/ps2dev/
+          docker rm temp-ps2dev
+          echo "PS2DEV=\~/ps2dev" >> $GITHUB_ENV
+          echo "PS2SDK=\~/ps2dev/ps2sdk" >> $GITHUB_ENV
+          echo "PATH=$PATH:\~/ps2dev/bin:\~/ps2dev/ee/bin:\~/ps2dev/iop/bin:\~/ps2dev/dvp/bin:\~/ps2dev/ps2sdk/bin" >> $GITHUB_ENV
+
+      - name: Debug ambiente
+        run: |
+          which ee-gcc || echo "ee-gcc NÃO encontrado!"
+          which ee-g++ || echo "ee-g++ NÃO encontrado!"
           echo "PS2SDK=$PS2SDK"
-          ls $PS2SDK/samples || echo "samples não encontrado!"
+          ls \~/ps2dev/bin || echo "bin vazia!"
+          ls $PS2SDK || echo "PS2SDK vazia!"
+
+      - name: Limpar projeto
+        run: make clean || true
+
+      - name: Compilar java.elf
+        run: make
+
+      - name: Verificar e listar ELF
+        run: |
+          ls -la *.elf || echo "Nenhum ELF gerado!"
+          file java.elf || echo "file falhou"
+
+      - name: Upload artifact se existir
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: java-elf-ps2
+          path: java.elf
+          if-no-files-found: warn
