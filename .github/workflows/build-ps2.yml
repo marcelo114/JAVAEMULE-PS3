@@ -1,42 +1,13 @@
-name: PS2 Homebrew - Build java.elf
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Setup PS2DEV via Docker (pré-compilado, sem erros de permissão)
+- name: Debug PATH e ferramentas
         run: |
-          docker pull ps2dev/ps2dev:latest || echo "Pull falhou, mas continua"
-          mkdir -p \~/ps2dev
-          docker run --rm -v \~/ps2dev:/ps2dev-host ps2dev/ps2dev:latest cp -r /usr/local/ps2dev/* /ps2dev-host/ || echo "Cópia ajustada"
-          echo "PS2DEV=\~/ps2dev" >> $GITHUB_ENV
-          echo "PS2SDK=\~/ps2dev/ps2sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:\~/ps2dev/bin:\~/ps2dev/ee/bin:\~/ps2dev/iop/bin:\~/ps2dev/dvp/bin:\~/ps2dev/ps2sdk/bin" >> $GITHUB_ENV
+          echo "PATH atual: $PATH"
+          which ee-gcc || echo "ee-gcc não encontrado!"
+          which dvp-as || echo "dvp-as não encontrado!"
+          ls \~/ps2dev/bin || echo "bin não encontrado!"
+          ls \~/ps2dev/ps2sdk || echo "ps2sdk não encontrado!"
 
-      - name: Limpar projeto
-        run: make clean || true
-
-      - name: Compilar java.elf
-        run: make
-
-      - name: Verificar ELF gerado
+      - name: Debug PS2SDK vars
         run: |
-          ls -la java.elf || echo "ELF não encontrado!"
-          file java.elf || echo "file command falhou"
-
-      - name: Upload java.elf como artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: java-elf-ps2
-          path: java.elf
-          if-no-files-found: warn
+          echo "PS2DEV=$PS2DEV"
+          echo "PS2SDK=$PS2SDK"
+          ls $PS2SDK/samples || echo "samples não encontrado!"
