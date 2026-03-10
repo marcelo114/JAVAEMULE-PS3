@@ -1,0 +1,27 @@
+# Makefile.eeglobal - Regras básicas para compilar EE (Emotion Engine)
+
+EE_CC ?= ee-gcc
+EE_CXX ?= ee-g++
+EE_LD ?= ee-ld
+EE_AR ?= ee-ar
+EE_RANLIB ?= ee-ranlib
+EE_STRIP ?= ee-strip
+
+EE_CFLAGS ?= -D_EE -O2 -G0 -Wall -fno-builtin
+EE_LDFLAGS ?= -L$(PS2SDK)/ee/lib -s
+
+EE_INCS ?= -I\( (PS2SDK)/ee/include -I \)(PS2SDK)/common/include
+
+# Regra para .c → .o
+%.o: %.c
+	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
+
+# Regra para .cpp → .o (se precisar)
+%.o: %.cpp
+	$(EE_CXX) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
+
+# Link final (pode ajustar se precisar de crt0 diferente)
+$(EE_BIN): $(EE_OBJS)
+	$(EE_CC) -mno-crt0 -nostartfiles -Tlinkfile $(EE_LDFLAGS) \
+		-o $(EE_BIN) $(PS2SDK)/ee/startup/crt0.o $(EE_OBJS) $(EE_LIBS)
+	$(EE_STRIP) $(EE_BIN)
